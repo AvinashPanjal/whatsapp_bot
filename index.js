@@ -76,7 +76,7 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Configure Puppeteer options for container environments (Render/Railway/Docker)
+// Configure Puppeteer options for container environments with memory limits (Render 512MB RAM)
 const puppeteerArgs = [
   '--no-sandbox',
   '--disable-setuid-sandbox',
@@ -85,6 +85,16 @@ const puppeteerArgs = [
   '--disable-gpu',
   '--disable-software-rasterizer',
   '--disable-extensions',
+  '--disable-background-networking',
+  '--disable-background-timer-throttling',
+  '--disable-backgrounding-occluded-windows',
+  '--disable-breakpad',
+  '--disable-component-update',
+  '--disable-default-apps',
+  '--disable-features=Translate,BackForwardCache,MediaRouter',
+  '--disable-ipc-flooding-protection',
+  '--disable-renderer-backgrounding',
+  '--js-flags="--max-old-space-size=256"',
   '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
 ];
 
