@@ -98,10 +98,6 @@ if (process.env.PUPPETEER_EXECUTABLE_PATH) {
 console.log('Initializing WhatsApp Web Client...');
 const client = new Client({
   authStrategy: new LocalAuth({ dataPath: './.wwebjs_auth' }),
-  webVersionCache: {
-    type: 'remote',
-    remotePath: 'https://raw.githubusercontent.com/wwebjs/web-api/main/versions/2.3000.1014721631-outdated.html',
-  },
   puppeteer: puppeteerOptions
 });
 
