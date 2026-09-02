@@ -150,18 +150,33 @@ client.on('disconnected', (reason) => {
   botStatus = `Disconnected: ${reason}`;
 });
 
-// Handling incoming WhatsApp messages
-client.on('message', async (msg) => {
+// Handling incoming WhatsApp messages (supports both other contacts & self-testing)
+client.on('message_create', async (msg) => {
   try {
-    // Ignore status broadcast updates or messages sent by the bot itself
-    if (msg.isStatus || msg.from === 'status@broadcast' || msg.fromMe) {
+    // Ignore status broadcast updates
+    if (msg.isStatus || msg.from === 'status@broadcast') {
+      return;
+    }
+
+    const isSelf = msg.fromMe;
+    const allowSelf = process.env.ALLOW_SELF_MESSAGES !== 'false';
+
+    // Skip self-messages if explicitly disabled
+    if (isSelf && !allowSelf) {
       return;
     }
 
     const prefix = process.env.BOT_PREFIX || '';
     const body = msg.body ? msg.body.trim() : '';
 
-    // Check if prefix condition applies
+    if (!body) return;
+
+    // Prevent bot from replying to its own AI output (avoids infinite loops)
+    if (isSelf && body.startsWith('🤖')) {
+      return;
+    }
+
+    // Check if prefix condition applies when BOT_PREFIX is configured
     if (prefix && !body.startsWith(prefix)) {
       return;
     }
@@ -179,16 +194,19 @@ client.on('message', async (msg) => {
       return;
     }
 
-    console.log(`📩 [${msg.from}] asked: "${userPrompt}"`);
+    console.log(`📩 [${isSelf ? 'Self Test' : msg.from}] received prompt: "${userPrompt}"`);
 
-    // Indicate typing in WhatsApp UI
+    // Show typing state in WhatsApp
     await chat.sendStateTyping();
 
     // Call Gemini API
     const reply = await askGemini(userPrompt);
 
-    // Send answer back to user
-    await msg.reply(reply);
+    // Prefix AI response with 🤖 indicator
+    const formattedReply = `🤖 ${reply}`;
+
+    // Send answer back to chat
+    await msg.reply(formattedReply);
     console.log(`📤 Replied to [${msg.from}]`);
   } catch (err) {
     console.error('Error handling WhatsApp message:', err);
