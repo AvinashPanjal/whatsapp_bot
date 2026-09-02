@@ -82,10 +82,8 @@ const puppeteerArgs = [
   '--disable-setuid-sandbox',
   '--disable-dev-shm-usage',
   '--disable-accelerated-2d-canvas',
-  '--no-first-run',
-  '--no-zygote',
-  '--single-process',
-  '--disable-gpu'
+  '--disable-gpu',
+  '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
 ];
 
 const puppeteerOptions = {
@@ -100,6 +98,10 @@ if (process.env.PUPPETEER_EXECUTABLE_PATH) {
 console.log('Initializing WhatsApp Web Client...');
 const client = new Client({
   authStrategy: new LocalAuth({ dataPath: './.wwebjs_auth' }),
+  webVersionCache: {
+    type: 'remote',
+    remotePath: 'https://raw.githubusercontent.com/wwebjs/web-api/main/versions/2.3000.1014721631-outdated.html',
+  },
   puppeteer: puppeteerOptions
 });
 
