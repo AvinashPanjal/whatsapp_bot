@@ -83,6 +83,8 @@ const puppeteerArgs = [
   '--disable-dev-shm-usage',
   '--disable-accelerated-2d-canvas',
   '--disable-gpu',
+  '--disable-software-rasterizer',
+  '--disable-extensions',
   '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
 ];
 
@@ -183,11 +185,12 @@ client.on('message', async (msg) => {
   }
 });
 
-// Start Express server
-app.listen(PORT, () => {
-  console.log(`🌐 Server dashboard running on http://localhost:${PORT}`);
+// Start Express server binding explicitly to 0.0.0.0 for Render/Railway routing
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🌐 Server dashboard running on http://0.0.0.0:${PORT}`);
   console.log(`🤖 Starting WhatsApp client initialization...`);
   client.initialize().catch(err => {
     console.error('Failed to initialize WhatsApp client:', err);
+    botStatus = `Initialization Error: ${err.message}`;
   });
 });
