@@ -150,66 +150,81 @@ client.on('disconnected', (reason) => {
   botStatus = `Disconnected: ${reason}`;
 });
 
-// Handling incoming WhatsApp messages (supports both other contacts & self-testing)
-client.on('message_create', async (msg) => {
+// Common message handler for both incoming & self messages
+async function handleIncomingMessage(msg, isSelf) {
   try {
     // Ignore status broadcast updates
     if (msg.isStatus || msg.from === 'status@broadcast') {
       return;
     }
 
-    const isSelf = msg.fromMe;
     const allowSelf = process.env.ALLOW_SELF_MESSAGES !== 'false';
-
-    // Skip self-messages if explicitly disabled
     if (isSelf && !allowSelf) {
       return;
     }
 
-    const prefix = process.env.BOT_PREFIX || '';
     const body = msg.body ? msg.body.trim() : '';
+    if (!body) {
+      return;
+    }
 
-    if (!body) return;
-
-    // Prevent bot from replying to its own AI output (avoids infinite loops)
+    // Ignore bot's own AI output to prevent infinite loops
     if (isSelf && body.startsWith('🤖')) {
       return;
     }
 
-    // Check if prefix condition applies when BOT_PREFIX is configured
+    const prefix = process.env.BOT_PREFIX || '';
     if (prefix && !body.startsWith(prefix)) {
       return;
     }
 
     const userPrompt = prefix ? body.slice(prefix.length).trim() : body;
-
-    if (!userPrompt) {
-      return;
-    }
+    if (!userPrompt) return;
 
     const chat = await msg.getChat();
     
-    // Ignore group chats unless prefix is used or ALLOW_GROUPS=true
+    // Ignore group chats unless ALLOW_GROUPS=true or prefix is used
     if (chat.isGroup && !prefix && process.env.ALLOW_GROUPS !== 'true') {
       return;
     }
 
-    console.log(`📩 [${isSelf ? 'Self Test' : msg.from}] received prompt: "${userPrompt}"`);
+    console.log(`📩 RECEIVED [${isSelf ? 'Self Test' : msg.from}]: "${userPrompt}"`);
 
-    // Show typing state in WhatsApp
-    await chat.sendStateTyping();
+    // Show typing indicator in WhatsApp UI
+    try {
+      await chat.sendStateTyping();
+    } catch (e) {
+      // Ignore typing status errors if any
+    }
 
-    // Call Gemini API
+    // Query Gemini AI
     const reply = await askGemini(userPrompt);
 
-    // Prefix AI response with 🤖 indicator
+    // Format response with 🤖 indicator
     const formattedReply = `🤖 ${reply}`;
 
     // Send answer back to chat
     await msg.reply(formattedReply);
-    console.log(`📤 Replied to [${msg.from}]`);
+    console.log(`📤 REPLIED to [${msg.from}]`);
   } catch (err) {
-    console.error('Error handling WhatsApp message:', err);
+    console.error('❌ Error in message handler:', err);
+    try {
+      await msg.reply(`🤖 ⚠️ Error processing message: ${err.message || 'Internal error'}`);
+    } catch (sendErr) {
+      console.error('Failed to send error reply:', sendErr);
+    }
+  }
+}
+
+// 1. Listen to incoming messages from OTHER users
+client.on('message', async (msg) => {
+  await handleIncomingMessage(msg, false);
+});
+
+// 2. Listen to outgoing messages from SELF (for testing from the logged-in phone)
+client.on('message_create', async (msg) => {
+  if (msg.fromMe) {
+    await handleIncomingMessage(msg, true);
   }
 });
 
