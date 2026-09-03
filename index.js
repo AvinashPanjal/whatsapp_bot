@@ -181,21 +181,14 @@ async function handleIncomingMessage(msg, isSelf) {
     const userPrompt = prefix ? body.slice(prefix.length).trim() : body;
     if (!userPrompt) return;
 
-    const chat = await msg.getChat();
+    const isGroup = msg.from.endsWith('@g.us');
     
     // Ignore group chats unless ALLOW_GROUPS=true or prefix is used
-    if (chat.isGroup && !prefix && process.env.ALLOW_GROUPS !== 'true') {
+    if (isGroup && !prefix && process.env.ALLOW_GROUPS !== 'true') {
       return;
     }
 
     console.log(`📩 RECEIVED [${isSelf ? 'Self Test' : msg.from}]: "${userPrompt}"`);
-
-    // Show typing indicator in WhatsApp UI
-    try {
-      await chat.sendStateTyping();
-    } catch (e) {
-      // Ignore typing status errors if any
-    }
 
     // Query Gemini AI
     const reply = await askGemini(userPrompt);
